@@ -2,6 +2,8 @@
 
 Exposes the [Amazon Kinesis Producer Library](https://github.com/awslabs/amazon-kinesis-producer) via sockets for multi-language support.
 
+[![Docker Repository on Quay](https://quay.io/repository/turner/kplserver/status "Docker Repository on Quay")](https://quay.io/repository/turner/kplserver)
+
 The KPL is written in Java and designed to be consumed by Java applications.  This project may be useful if you're building a data ingestion app using Kinesis in a language other than Java.
 
 ### usage
