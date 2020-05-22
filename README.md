@@ -70,6 +70,11 @@ If you're consuming the KPL from an ecs/fargate container, the followning contai
 </details>
 
 
+### client libraries
+
+- [Go](https://github.com/turnerlabs/kplclientgo)
+
+
 ### development
 
 ```
