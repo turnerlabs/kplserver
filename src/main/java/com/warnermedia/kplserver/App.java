@@ -1,24 +1,25 @@
 package com.warnermedia.kplserver;
 
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.math.BigInteger;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-
-import com.amazonaws.services.kinesis.producer.UserRecordFailedException;
-import com.amazonaws.services.kinesis.producer.UserRecordResult;
+import com.amazonaws.services.kinesis.producer.Attempt;
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import com.amazonaws.services.kinesis.producer.UserRecord;
-import com.amazonaws.services.kinesis.producer.Attempt;
-
+import com.amazonaws.services.kinesis.producer.UserRecordFailedException;
+import com.amazonaws.services.kinesis.producer.UserRecordResult;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class App {
 
@@ -35,11 +36,11 @@ public class App {
           Attempt last = ((UserRecordFailedException) t).getResult().getAttempts().get(attempts);
           if (attempts > 1) {
             Attempt previous = ((UserRecordFailedException) t).getResult().getAttempts().get(attempts - 1);
-            System.out.println(String.format("Record failed to put - %s : %s. Previous failure - %s : %s",
-                last.getErrorCode(), last.getErrorMessage(), previous.getErrorCode(), previous.getErrorMessage()));
+            System.out.printf("Record failed to put - %s : %s. Previous failure - %s : %s%n",
+              last.getErrorCode(), last.getErrorMessage(), previous.getErrorCode(), previous.getErrorMessage());
           } else {
             System.out
-                .println(String.format("Record failed to put - %s : %s.", last.getErrorCode(), last.getErrorMessage()));
+              .printf("Record failed to put - %s : %s.%n", last.getErrorCode(), last.getErrorMessage());
           }
         }
       }
@@ -73,7 +74,7 @@ public class App {
     System.out.println("connection from " + clientAddress);
 
     BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-    String line = null;
+    String line;
     String stream = getKinesisStream();
 
     KinesisProducerConfiguration config = new KinesisProducerConfiguration().setRegion(getRegion());
@@ -87,7 +88,7 @@ public class App {
         line += "\n";
 
         // write to kinesis
-        ByteBuffer data = ByteBuffer.wrap(line.getBytes("UTF-8"));
+        ByteBuffer data = ByteBuffer.wrap(line.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         UserRecord userRecord = new UserRecord(stream, " ", randomExplicitHashKey(), data);
         try {
           ListenableFuture<UserRecordResult> f = producer.addUserRecord(userRecord);
