@@ -12,37 +12,35 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.BufferedReader;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class SendEventsToKinesis {
-  private final BufferedReader inputQueue;
+public class KinesisEventPublisher {
   private final String stream;
   private static final Log log = LogFactory.getLog(
-    SendEventsToKinesis.class);
+    KinesisEventPublisher.class);
+  final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
 
   private final KinesisProducer kinesis;
 
-  public SendEventsToKinesis(String stream, String region, BufferedReader inputQueue) {
-    this.inputQueue = inputQueue;
+  public KinesisEventPublisher(String stream, String region) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region));
   }
 
-  public void runOnce() throws Exception {
-    String line = inputQueue.readLine();
-    if (line == null) {
-      return;
-    }
-
+  public void runOnce(String line) throws Exception {
     // add new line so that downstream systems have an easier time parsing
     String finalLine = line + "\n";
 
     ByteBuffer data = ByteBuffer.wrap(line.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    //This is a measure of the backpressure in the system, which should be checked before putting more records,
+    //to avoid exhausting system resources.
     while (kinesis.getOutstandingRecordsCount() > 1e4) {
       log.info("Too many outstanding records pending in the queue. Waiting for a second.");
       Thread.sleep(1000);
@@ -50,7 +48,6 @@ public class SendEventsToKinesis {
 
     UserRecord userRecord = new UserRecord(stream, " ", randomExplicitHashKey(), data);
     ListenableFuture<UserRecordResult> f = kinesis.addUserRecord(userRecord);
-
 
     Futures.addCallback(f, new FutureCallback<UserRecordResult>() {
 
@@ -78,12 +75,11 @@ public class SendEventsToKinesis {
               .collect(Collectors.toList()), "n");
 
           log.error(String.format(
-            "Record failed to put, partitionKey=%s, "
-              + "payload=%s, attempts:n%s",
-            " ", finalLine, errorList));
+            "Record failed to put payload=%s, attempts:n%s",
+            finalLine, errorList));
         }
       }
-    });
+    }, callbackThreadPool);
   }
 
   private String randomExplicitHashKey() {

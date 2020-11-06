@@ -20,7 +20,7 @@ public class App {
     BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
     String stream = getKinesisStream();
 
-    SendEventsToKinesis sendEventsToKinesis = new SendEventsToKinesis(stream, getRegion(), in);
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion());
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -30,7 +30,7 @@ public class App {
         if (!server.isClosed()) {
           try {
             server.close();
-            sendEventsToKinesis.stop();
+            kinesisEventPublisher.stop();
           } catch (IOException e) {
             System.out.println(e);
           }
@@ -41,7 +41,11 @@ public class App {
 
     while (true) {
       try {
-        sendEventsToKinesis.runOnce();
+        String line = in.readLine();
+        if (line == null) {
+          continue;
+        }
+        kinesisEventPublisher.runOnce(line);
       } catch (Exception e) {
         System.out.println(e);
       }
@@ -62,5 +66,9 @@ public class App {
 
   static String getRegion() {
     return System.getenv("AWS_DEFAULT_REGION");
+  }
+
+  static String getDlqUrl() {
+    return System.getenv("DLQ_URL");
   }
 }
