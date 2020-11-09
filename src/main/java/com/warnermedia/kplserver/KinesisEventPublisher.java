@@ -27,13 +27,14 @@ public class KinesisEventPublisher {
   private static final Log log = LogFactory.getLog(
     KinesisEventPublisher.class);
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
-  final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
+  private final AmazonSQS sqs;
   private final KinesisProducer kinesis;
 
   public KinesisEventPublisher(String stream, String region) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region));
+    sqs = AmazonSQSClientBuilder.standard().withRegion(region).build();
   }
 
   public void runOnce(String line) throws Exception {
@@ -46,7 +47,7 @@ public class KinesisEventPublisher {
     //to avoid exhausting system resources.
     while (kinesis.getOutstandingRecordsCount() > 1e4) {
       log.info("Too many outstanding records pending in the queue. Waiting for a second.");
-      Thread.sleep(1000);
+      Thread.sleep(500);
     }
 
     UserRecord userRecord = new UserRecord(stream, " ", randomExplicitHashKey(), data);
@@ -78,11 +79,10 @@ public class KinesisEventPublisher {
               .collect(Collectors.toList()), "n");
 
           log.error(String.format(
-            "Record failed to put payload=%s, attempts:n%s",
+            "Record failed to put payload=%s, attempts:%s",
             finalLine, errorList));
 
           String queueUrl = System.getenv("DLQ_URL");
-
           if (queueUrl != null) {
             SendMessageRequest send_msg_request = new SendMessageRequest()
               .withQueueUrl(queueUrl)

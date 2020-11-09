@@ -8,7 +8,9 @@ The KPL is written in Java and designed to be consumed by Java applications.  Th
 
 ### usage
 
-The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable.  Point the server to your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables.  Once the server is up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data.  Each record you send should be delimited by a new line.
+The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable.  Point the server to your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables.  Once the server is up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data.  Each record you send should be delimited by a new line. 
+
+Optionally, you can provide an AWS SQS URL with env var `DLQ_URL` where any message which cannot be put in kinesis stream for any reason will be posted.
 
 
 ### docker image
@@ -20,6 +22,7 @@ docker run -it --rm \
   -p 3000:3000 \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -e KINESIS_STREAM=my-stream \
+  -e DLQ_URL=my-sql-url \
   quay.io/turner/kplserver
 ```
 
@@ -60,6 +63,10 @@ If you're consuming the KPL from an ecs/fargate container, the followning contai
         {
           "name": "PORT",
           "value": "3000"
+        },
+        {
+          "name": "DLQ_URL",
+          "value": "https://sqs.us-east-1.amazonaws.com/651850529327/kinesis-dlq"
         }
       ]
     }
