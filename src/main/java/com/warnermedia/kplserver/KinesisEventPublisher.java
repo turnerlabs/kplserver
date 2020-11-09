@@ -11,6 +11,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -24,7 +26,7 @@ public class KinesisEventPublisher {
   private static final Log log = LogFactory.getLog(
     KinesisEventPublisher.class);
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
-
+  final AmazonSQS sqs = AmazonSQSClientBuilder.defaultClient();
   private final KinesisProducer kinesis;
 
   public KinesisEventPublisher(String stream, String region) {
@@ -77,6 +79,14 @@ public class KinesisEventPublisher {
           log.error(String.format(
             "Record failed to put payload=%s, attempts:n%s",
             finalLine, errorList));
+
+          String queueUrl = sqs.getQueueUrl("test").getQueueUrl();
+
+          SendMessageRequest send_msg_request = new SendMessageRequest()
+            .withQueueUrl(queueUrl)
+            .withMessageBody("hello world")
+            .withDelaySeconds(5);
+          sqs.sendMessage(send_msg_request);
         }
       }
     }, callbackThreadPool);
