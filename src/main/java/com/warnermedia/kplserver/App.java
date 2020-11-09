@@ -67,8 +67,4 @@ public class App {
   static String getRegion() {
     return System.getenv("AWS_DEFAULT_REGION");
   }
-
-  static String getDlqUrl() {
-    return System.getenv("DLQ_URL");
-  }
 }
