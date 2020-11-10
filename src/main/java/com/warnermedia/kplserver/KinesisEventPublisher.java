@@ -29,6 +29,7 @@ public class KinesisEventPublisher {
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
   private final AmazonSQS sqs;
   private final KinesisProducer kinesis;
+  private static final String queueUrl = System.getenv("DLQ_URL");
 
   public KinesisEventPublisher(String stream, String region) {
     this.stream = stream;
@@ -82,7 +83,6 @@ public class KinesisEventPublisher {
             "Record failed to put payload=%s, attempts:%s",
             finalLine, errorList));
 
-          String queueUrl = System.getenv("DLQ_URL");
           if (queueUrl != null) {
             SendMessageRequest send_msg_request = new SendMessageRequest()
               .withQueueUrl(queueUrl)
