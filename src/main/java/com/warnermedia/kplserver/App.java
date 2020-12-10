@@ -12,6 +12,7 @@ public class App {
     int port = getPort();
     System.out.println("starting kplserver: " + port);
     ServerSocket server = new ServerSocket(port);
+    Socket errSocket = new Socket();
 
     Socket client = server.accept();
     String clientAddress = client.getInetAddress().getHostAddress();
@@ -20,13 +21,17 @@ public class App {
     BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
     String stream = getKinesisStream();
 
-    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion());
+    if (getErrSocketPort() != null) {
+      errSocket = new Socket(getErrSocketHost(), getErrSocketPort());
+    }
+
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), errSocket);
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
-        System.out.println("closing socket");
+        System.out.println("closing sockets");
         if (!server.isClosed()) {
           try {
             server.close();
@@ -37,7 +42,6 @@ public class App {
         }
       }
     });
-
 
     while (true) {
       try {
@@ -54,10 +58,29 @@ public class App {
 
   static int getPort() {
     String p = System.getenv("PORT");
-    if (p == null || p == "") {
+    if (p == null || p.equals("")) {
       return 3000;
     }
     return Integer.parseInt(p);
+  }
+
+  static String getErrSocketHost() {
+    String h = System.getenv("ERROR_SOCKET_HOST");
+    if (h == null || h.equals("")) {
+      return "127.0.01";
+    }
+    return h;
+  }
+
+  static Integer getErrSocketPort() {
+    String p = System.getenv("ERROR_SOCKET_PORT");
+    try {
+      return Integer.parseInt(p);
+    } catch (Exception e) {
+      System.out.println("No port sat for errors");
+      System.out.println(e);
+      return null;
+    }
   }
 
   static String getKinesisStream() {

@@ -5,9 +5,6 @@ import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import com.amazonaws.services.kinesis.producer.UserRecord;
 import com.amazonaws.services.kinesis.producer.UserRecordFailedException;
 import com.amazonaws.services.kinesis.producer.UserRecordResult;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -15,7 +12,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -27,15 +27,16 @@ public class KinesisEventPublisher {
   private static final Log log = LogFactory.getLog(
     KinesisEventPublisher.class);
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
-  private final AmazonSQS sqs;
   private final KinesisProducer kinesis;
-  private static final String queueUrl = System.getenv("DLQ_URL");
+  private DataOutputStream errOutputStream;
 
-  public KinesisEventPublisher(String stream, String region) {
+  public KinesisEventPublisher(String stream, String region, Socket socket) throws IOException {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region));
-    sqs = AmazonSQSClientBuilder.standard().withRegion(region).build();
+    if (socket.isConnected()) {
+      errOutputStream = new DataOutputStream((socket.getOutputStream()));
+    }
   }
 
   public void runOnce(String line) throws Exception {
@@ -83,12 +84,13 @@ public class KinesisEventPublisher {
             "Record failed to put payload=%s, attempts:%s",
             finalLine, errorList));
 
-          if (queueUrl != null) {
-            SendMessageRequest send_msg_request = new SendMessageRequest()
-              .withQueueUrl(queueUrl)
-              .withMessageBody(finalLine)
-              .withDelaySeconds(5);
-            sqs.sendMessage(send_msg_request);
+          if (errOutputStream != null) {
+            try {
+              errOutputStream.writeUTF(line);
+              errOutputStream.flush();
+            } catch (IOException ioException) {
+              ioException.printStackTrace();
+            }
           }
         }
       }
@@ -99,7 +101,8 @@ public class KinesisEventPublisher {
     return new BigInteger(128, new Random()).toString(10);
   }
 
-  public void stop() {
+  public void stop() throws IOException {
+    errOutputStream.close();
     kinesis.flushSync();
     kinesis.destroy();
   }
