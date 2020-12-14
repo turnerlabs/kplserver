@@ -21,11 +21,7 @@ public class App {
     BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
     String stream = getKinesisStream();
 
-    if (getErrSocketPort() != null) {
-      errSocket = new Socket(getErrSocketHost(), getErrSocketPort());
-    }
-
-    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), errSocket);
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), getErrSocketPort(), getErrSocketHost());
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -76,11 +72,13 @@ public class App {
     String p = System.getenv("ERROR_SOCKET_PORT");
     try {
       return Integer.parseInt(p);
-    } catch (Exception e) {
-      System.out.println("No port sat for errors");
+    } catch (
+      Exception e) {
+      System.out.println("There is no or invalid port set for errors");
       System.out.println(e);
       return null;
     }
+
   }
 
   static String getKinesisStream() {

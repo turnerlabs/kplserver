@@ -28,15 +28,16 @@ public class KinesisEventPublisher {
     KinesisEventPublisher.class);
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
   private final KinesisProducer kinesis;
+  private final String errHost;
+  private final Integer errPort;
   private DataOutputStream errOutputStream;
 
-  public KinesisEventPublisher(String stream, String region, Socket socket) throws IOException {
+  public KinesisEventPublisher(String stream, String region, Integer errPort, String errHost) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region));
-    if (socket.isConnected()) {
-      errOutputStream = new DataOutputStream((socket.getOutputStream()));
-    }
+    this.errHost = errHost;
+    this.errPort = errPort;
   }
 
   public void runOnce(String line) throws Exception {
@@ -65,6 +66,17 @@ public class KinesisEventPublisher {
       @Override
       public void onFailure(Throwable t) {
         if (t instanceof UserRecordFailedException) {
+          try {
+            if (errPort != null && errOutputStream == null) {
+              Socket errSocket = new Socket(errHost, errPort);
+              errSocket.setKeepAlive(true);
+              errOutputStream = new DataOutputStream((errSocket.getOutputStream()));
+            }
+          } catch (Exception e) {
+            log.error(String.format(
+              "Record dropped. Unable to connect to error socket. payload=%s, attempts:%s",
+              finalLine, e));
+          }
           UserRecordFailedException e =
             (UserRecordFailedException) t;
           UserRecordResult result = e.getResult();
@@ -81,12 +93,12 @@ public class KinesisEventPublisher {
               .collect(Collectors.toList()), "n");
 
           log.error(String.format(
-            "Record failed to put payload=%s, attempts:%s",
+            "Record failed to put payload=%s, attempts=%s",
             finalLine, errorList));
 
           if (errOutputStream != null) {
             try {
-              errOutputStream.writeUTF(line);
+              errOutputStream.writeUTF(finalLine);
               errOutputStream.flush();
             } catch (IOException ioException) {
               ioException.printStackTrace();
