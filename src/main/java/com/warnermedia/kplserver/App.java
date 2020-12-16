@@ -63,7 +63,7 @@ public class App {
   static String getErrSocketHost() {
     String h = System.getenv("ERROR_SOCKET_HOST");
     if (h == null || h.equals("")) {
-      return "127.0.01";
+      return "127.0.0.1";
     }
     return h;
   }
