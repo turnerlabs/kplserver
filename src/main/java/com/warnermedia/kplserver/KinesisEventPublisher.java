@@ -70,8 +70,8 @@ public class KinesisEventPublisher {
             if (errSocket != null && (errClient == null || !errClient.isConnected())) {
               errClient = errSocket.accept();
               errClient.setKeepAlive(true);
+              errOutputStream = new DataOutputStream((errClient.getOutputStream()));
               System.out.println("error socket connection from " + errClient.getInetAddress().getHostAddress());
-              return;
             }
           } catch (Exception e) {
             log.error(String.format(
@@ -101,9 +101,11 @@ public class KinesisEventPublisher {
 
           if (errOutputStream != null) {
             try {
-              errOutputStream.writeUTF(finalLine);
+              errOutputStream.writeBytes(finalLine);
               errOutputStream.flush();
+              log.info("Sent the record to output stream");
             } catch (IOException ioException) {
+              System.out.println("Unable to send data to err channel");
               ioException.printStackTrace();
             }
           }
