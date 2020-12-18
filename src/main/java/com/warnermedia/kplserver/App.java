@@ -12,7 +12,6 @@ public class App {
     int port = getPort();
     System.out.println("starting kplserver: " + port);
     ServerSocket server = new ServerSocket(port);
-    Socket errSocket = new Socket();
 
     Socket client = server.accept();
     String clientAddress = client.getInetAddress().getHostAddress();
@@ -21,7 +20,12 @@ public class App {
     BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
     String stream = getKinesisStream();
 
-    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), getErrSocketPort(), getErrSocketHost());
+    port = getErrSocketPort();
+    System.out.println("error socket is opening at: " + port);
+    ServerSocket errSocket = new ServerSocket(port);
+    errSocket.setSoTimeout(100);
+
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), errSocket);
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -60,25 +64,12 @@ public class App {
     return Integer.parseInt(p);
   }
 
-  static String getErrSocketHost() {
-    String h = System.getenv("ERROR_SOCKET_HOST");
-    if (h == null || h.equals("")) {
-      return "127.0.01";
-    }
-    return h;
-  }
-
-  static Integer getErrSocketPort() {
+  static int getErrSocketPort() {
     String p = System.getenv("ERROR_SOCKET_PORT");
-    try {
-      return Integer.parseInt(p);
-    } catch (
-      Exception e) {
-      System.out.println("There is no or invalid port set for errors");
-      System.out.println(e);
-      return null;
+    if (p == null || p.equals("")) {
+      return 3001;
     }
-
+    return Integer.parseInt(p);
   }
 
   static String getKinesisStream() {

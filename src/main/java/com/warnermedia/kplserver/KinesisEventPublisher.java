@@ -15,6 +15,7 @@ import org.apache.commons.logging.LogFactory;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -28,16 +29,15 @@ public class KinesisEventPublisher {
     KinesisEventPublisher.class);
   final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
   private final KinesisProducer kinesis;
-  private final String errHost;
-  private final Integer errPort;
   private DataOutputStream errOutputStream;
+  ServerSocket errSocket;
+  Socket errClient;
 
-  public KinesisEventPublisher(String stream, String region, Integer errPort, String errHost) {
+  public KinesisEventPublisher(String stream, String region, ServerSocket errSocket) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region));
-    this.errHost = errHost;
-    this.errPort = errPort;
+    this.errSocket = errSocket;
   }
 
   public void runOnce(String line) throws Exception {
@@ -67,16 +67,19 @@ public class KinesisEventPublisher {
       public void onFailure(Throwable t) {
         if (t instanceof UserRecordFailedException) {
           try {
-            if (errPort != null && errOutputStream == null) {
-              Socket errSocket = new Socket(errHost, errPort);
-              errSocket.setKeepAlive(true);
-              errOutputStream = new DataOutputStream((errSocket.getOutputStream()));
+            if (errSocket != null && (errClient == null || !errClient.isConnected())) {
+              errClient = errSocket.accept();
+              errClient.setKeepAlive(true);
+              System.out.println("error socket connection from " + errClient.getInetAddress().getHostAddress());
+              return;
             }
           } catch (Exception e) {
             log.error(String.format(
               "Record dropped. Unable to connect to error socket. payload=%s, attempts:%s",
               finalLine, e));
+            return;
           }
+
           UserRecordFailedException e =
             (UserRecordFailedException) t;
           UserRecordResult result = e.getResult();

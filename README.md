@@ -15,8 +15,8 @@ your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` env
 up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data. Each record you send
 should be delimited by a new line.
 
-Optionally, you can provide a host (`ERROR_SOCKET_HOST`) and port (`ERROR_SOCKET_PORT`) where any message which cannot
-be put in kinesis stream for any reason will be posted.
+Any message which cannot be put into kinesis stream for any reason will be sent to the client connected with port `3001`
+. This port can be overwritten by providing env var `ERROR_SOCKET_PORT`.
 
 ### docker image
 
@@ -25,9 +25,9 @@ This server is available as a docker image.
 ```sh
 docker run -it --rm \
   -p 3000:3000 \
+  -p 3001:3001 \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -e KINESIS_STREAM=my-stream \
-  -e ERROR_SOCKET_HOST=127.0.0.1 \
   -e ERROR_SOCKET_PORT=3001 \
   quay.io/turner/kplserver
 ```
@@ -60,6 +60,11 @@ definition will configure this server as a sidecar container that you can talk t
           "protocol": "tcp",
           "hostPort": 3000,
           "containerPort": 3000
+        },
+        {
+          "protocol": "tcp",
+          "hostPort": 3001,
+          "containerPort": 3001
         }
       ],
       "environment": [
@@ -70,10 +75,6 @@ definition will configure this server as a sidecar container that you can talk t
         {
           "name": "PORT",
           "value": "3000"
-        },
-        {
-          "name": "ERROR_SOCKET_HOST",
-          "value": "127.0.0.1"
         },
         {
           "name": "ERROR_SOCKET_PORT",
