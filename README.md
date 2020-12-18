@@ -1,15 +1,22 @@
 # kplserver
 
-Exposes the [Amazon Kinesis Producer Library](https://github.com/awslabs/amazon-kinesis-producer) via sockets for multi-language support.
+Exposes the [Amazon Kinesis Producer Library](https://github.com/awslabs/amazon-kinesis-producer) via sockets for
+multi-language support.
 
 [![Docker Repository on Quay](https://quay.io/repository/turner/kplserver/status "Docker Repository on Quay")](https://quay.io/repository/turner/kplserver)
 
-The KPL is written in Java and designed to be consumed by Java applications.  This project may be useful if you're building a data ingestion app using Kinesis in a language other than Java.
+The KPL is written in Java and designed to be consumed by Java applications. This project may be useful if you're
+building a data ingestion app using Kinesis in a language other than Java.
 
 ### usage
 
-The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable.  Point the server to your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables.  Once the server is up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data.  Each record you send should be delimited by a new line.
+The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable. Point the server to
+your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables. Once the server is
+up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data. Each record you send
+should be delimited by a new line.
 
+Any message which cannot be put into kinesis stream for any reason will be sent to the client connected with port `3001`
+. This port can be overwritten by providing env var `ERROR_SOCKET_PORT`.
 
 ### docker image
 
@@ -18,14 +25,17 @@ This server is available as a docker image.
 ```sh
 docker run -it --rm \
   -p 3000:3000 \
+  -p 3001:3001 \
   -e AWS_DEFAULT_REGION=us-east-1 \
   -e KINESIS_STREAM=my-stream \
+  -e ERROR_SOCKET_PORT=3001 \
   quay.io/turner/kplserver
 ```
 
 ### sidecar
 
-If you're consuming the KPL from an ecs/fargate container, the followning container definitions snippet from a task definition will configure this server as a sidecar container that you can talk to over sockets via `127.0.0.1:3000`.
+If you're consuming the KPL from an ecs/fargate container, the followning container definitions snippet from a task
+definition will configure this server as a sidecar container that you can talk to over sockets via `127.0.0.1:3000`.
 
 <details><summary>task definition example</summary>
 
@@ -50,6 +60,11 @@ If you're consuming the KPL from an ecs/fargate container, the followning contai
           "protocol": "tcp",
           "hostPort": 3000,
           "containerPort": 3000
+        },
+        {
+          "protocol": "tcp",
+          "hostPort": 3001,
+          "containerPort": 3001
         }
       ],
       "environment": [
@@ -60,6 +75,10 @@ If you're consuming the KPL from an ecs/fargate container, the followning contai
         {
           "name": "PORT",
           "value": "3000"
+        },
+        {
+          "name": "ERROR_SOCKET_PORT",
+          "value": "3001"
         }
       ]
     }
@@ -69,11 +88,9 @@ If you're consuming the KPL from an ecs/fargate container, the followning contai
 
 </details>
 
-
 ### client libraries
 
 - [Go](https://github.com/turnerlabs/kplclientgo)
-
 
 ### development
 

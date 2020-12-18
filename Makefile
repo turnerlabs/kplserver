@@ -16,4 +16,4 @@ build:
 ## start: build and start local server
 .PHONY: start
 start: build
-	PORT=3000 AWS_DEFAULT_REGION=us-east-1 KINESIS_STREAM=my-stream java -jar target/app.jar
+	PORT=3000 AWS_DEFAULT_REGION=us-east-1 java -jar target/app.jar
