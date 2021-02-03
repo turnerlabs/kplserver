@@ -44,7 +44,7 @@ public class KinesisEventPublisher {
     // add new line so that downstream systems have an easier time parsing
     String finalLine = line + "\n";
 
-    ByteBuffer data = ByteBuffer.wrap(line.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    ByteBuffer data = ByteBuffer.wrap(finalLine.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
     //This is a measure of the backpressure in the system, which should be checked before putting more records,
     //to avoid exhausting system resources.
