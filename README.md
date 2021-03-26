@@ -8,15 +8,15 @@ multi-language support.
 The KPL is written in Java and designed to be consumed by Java applications. This project may be useful if you're
 building a data ingestion app using Kinesis in a language other than Java.
 
-### usage
+### Usage
 
-The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable. Point the server to
-your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables. Once the server is
-up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data. Each record you send
-should be delimited by a new line.
+- Point the server to your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables. Once the server is
+up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data.
+- Each record you send should be delimited by a new line.
 
-Any message which cannot be put into kinesis stream for any reason will be sent to the client connected with port `3001`
-. This port can be overwritten by providing env var `ERROR_SOCKET_PORT`.
+When service starts, it exposes two ports:
+1. Inlet Port: This port is used to receive the message from your app to be sent to kinesis. The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable.
+2. Outlet Port: This port is used to send any message back to your app in case kplserver is not able to send message to kinesis after all retries. This port default to `3001` but can be overwritten by environment variable `ERROR_SOCKET_PORT`. Messages are not persisted if your app is not connected to this port and any such messages will be lost permanently.
 
 ### docker image
 
