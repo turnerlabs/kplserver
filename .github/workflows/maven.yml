@@ -50,10 +50,17 @@ jobs:
 
     - name: Tag kplserver image
       uses: turnerlabs/fargate-cicd-action@master
+      env:
+        ECR_REPO: ${{ secrets.ECR_REPO }}
       with:
         args: . ./env; docker tag kplserver:latest ${{ secrets.ECR_REPO }}:$TAG
 
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
+      env:
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        ECR_REPO: ${{ secrets.ECR_REPO }}        
       with:
         args: . ./env; docker push ${{ secrets.ECR_REPO }}:$TAG
