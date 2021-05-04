@@ -17,9 +17,6 @@ jobs:
   build:
     name: Deploy to ECR and Quay
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
 
     steps:
     - name: Checkout
