@@ -58,7 +58,7 @@ jobs:
     - name: Tag kplserver image
       uses: turnerlabs/fargate-cicd-action@master
       with:
-        args: docker tag kplserver:${{ steps.tag_version.outputs.new_tag }} public.ecr.aws/v6s5y4v7/kplserver
+        args: docker tag kplserver:latest public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }}
 
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
