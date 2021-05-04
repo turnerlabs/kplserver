@@ -54,13 +54,8 @@ jobs:
         aws-region: us-east-1
 
     - name: Login to us-east-1 ECR
-      uses: turnerlabs/fargate-cicd-action@master
-      env:
-        AWS_DEFAULT_REGION: us-east-1
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      with:
-        args: login=$(aws ecr-public get-login --no-include-email) && eval "$login"
+      run: |
+        aws ecr-public get-login --no-include-email
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
