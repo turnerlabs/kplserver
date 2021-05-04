@@ -12,10 +12,10 @@ on:
 jobs:
   build:
     name: Deploy to ECR and Quay
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
     
     - name: Set up JDK 11
       uses: actions/setup-java@v2
@@ -40,12 +40,6 @@ jobs:
         tag_name: ${{ steps.tag_version.outputs.new_tag }}
         release_name: Release ${{ steps.tag_version.outputs.new_tag }}
         body: ${{ steps.tag_version.outputs.changelog }}
-          
-    - name: Build kplserver image
-      uses: turnerlabs/fargate-cicd-action@master
-      with:
-        args: docker build -t kplserver .
-        
     - name: Login to us-east-1 ECR
       uses: turnerlabs/fargate-cicd-action@master
       env:
@@ -55,11 +49,15 @@ jobs:
       with:
         args: login=$(aws ecr get-login --no-include-email) && eval "$login"
 
-    - name: Tag kplserver image
+    - name: Build kplserver image
       uses: turnerlabs/fargate-cicd-action@master
+      env:
+        AWS_DEFAULT_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       with:
-        args: docker tag kplserver:latest public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }}
-
+        args: docker build -t public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }} .
+        
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
       env:
@@ -67,4 +65,4 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       with:
-        args: docker push public.ecr.aws/v6s5y4v7/kplserver
+        args: docker push public.ecr.aws/v6s5y4v7/kplserver::${{ steps.tag_version.outputs.new_tag }}
