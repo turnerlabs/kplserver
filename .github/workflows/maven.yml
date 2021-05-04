@@ -26,14 +26,21 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    - name: Set docker image
+    - name: Bump version and push tag
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v5.5
+      with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          
+    - name: Create a GitHub release
+      uses: actions/create-release@v1
       env:
-        VERSION: 0.1.0
-      run: |
-        BRANCH=$(echo $GITHUB_REF | cut -d "/" -f 3)
-        SHA_SHORT=$(echo $GITHUB_SHA | head -c7)
-        echo "export TAG=$VERSION-$BRANCH.$SHA_SHORT.$(date +'%Y%m%dT%H%M%S')" >> ./env
-
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag_version.outputs.new_tag }}
+        release_name: Release ${{ steps.tag_version.outputs.new_tag }}
+        body: ${{ steps.tag_version.outputs.changelog }}
+          
     - name: Build kplserver image
       uses: turnerlabs/fargate-cicd-action@master
       with:
@@ -53,7 +60,7 @@ jobs:
       env:
         ECR_REPO: ${{ secrets.ECR_REPO }}
       with:
-        args: . ./env; docker tag kplserver:$TAG ${{ secrets.ECR_REPO }}
+        args: . ./env; docker tag kplserver:latest ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
 
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
@@ -63,4 +70,4 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         ECR_REPO: ${{ secrets.ECR_REPO }}        
       with:
-        args: . ./env; docker push ${{ secrets.ECR_REPO }}
+        args: . ./env; docker push ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
