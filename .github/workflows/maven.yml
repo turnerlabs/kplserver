@@ -58,7 +58,7 @@ jobs:
     - name: Tag kplserver image
       uses: turnerlabs/fargate-cicd-action@master
       with:
-        args: docker tag kplserver:latest public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }}
+        args: docker tag ${{ steps.tag_version.outputs.new_tag }} public.ecr.aws/v6s5y4v7/kplserver
 
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
@@ -67,4 +67,4 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       with:
-        args: docker push public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }}
+        args: docker push public.ecr.aws/v6s5y4v7/kplserver
