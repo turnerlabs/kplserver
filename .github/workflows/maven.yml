@@ -55,7 +55,7 @@ jobs:
 
     - name: Login to us-east-1 ECR
       run: |
-        aws ecr-public get-login --no-include-email
+        aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
