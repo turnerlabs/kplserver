@@ -65,4 +65,4 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       with:
-        args: docker push public.ecr.aws/v6s5y4v7/kplserver::${{ steps.tag_version.outputs.new_tag }}
+        args: docker push public.ecr.aws/v6s5y4v7/kplserver:${{ steps.tag_version.outputs.new_tag }}
