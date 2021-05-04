@@ -44,7 +44,7 @@ jobs:
     - name: Build kplserver image
       uses: turnerlabs/fargate-cicd-action@master
       with:
-        args: . ./env; docker build -t kplserver .
+        args: docker build -t kplserver .
         
     - name: Login to us-east-1 ECR
       uses: turnerlabs/fargate-cicd-action@master
@@ -60,7 +60,7 @@ jobs:
       env:
         ECR_REPO: ${{ secrets.ECR_REPO }}
       with:
-        args: . ./env; docker tag kplserver:latest ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
+        args: docker tag kplserver:latest ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
 
     - name: Push kplserver image
       uses: turnerlabs/fargate-cicd-action@master
@@ -70,4 +70,4 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         ECR_REPO: ${{ secrets.ECR_REPO }}        
       with:
-        args: . ./env; docker push ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
+        args: docker push ${{ secrets.ECR_REPO }}:${{ steps.tag_version.outputs.new_tag }}
