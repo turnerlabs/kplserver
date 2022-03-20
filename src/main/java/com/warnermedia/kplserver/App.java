@@ -25,7 +25,7 @@ public class App {
     ServerSocket errSocket = new ServerSocket(port);
     errSocket.setSoTimeout(100);
 
-    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), errSocket);
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), getMetricsLevel(), errSocket);
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -79,4 +79,13 @@ public class App {
   static String getRegion() {
     return System.getenv("AWS_DEFAULT_REGION");
   }
+
+  static String getMetricsLevel() {
+    String p = System.getenv("METRICS_LEVEL");
+    if (p == null || p.equals("")) {
+      return "detailed";
+    }
+    return p;
+  }
+
 }
