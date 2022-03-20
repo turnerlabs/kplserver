@@ -12,6 +12,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import javax.security.auth.login.Configuration;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -33,10 +34,11 @@ public class KinesisEventPublisher {
   ServerSocket errSocket;
   Socket errClient;
 
-  public KinesisEventPublisher(String stream, String region, ServerSocket errSocket) {
+  public KinesisEventPublisher(String stream, String region, String metricsLevel, ServerSocket errSocket) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
-      .setRegion(region));
+      .setRegion(region)
+      .setMetricsLevel(metricsLevel));
     this.errSocket = errSocket;
   }
 
