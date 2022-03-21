@@ -8,6 +8,8 @@ import com.amazonaws.services.kinesis.producer.UserRecordResult;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +48,25 @@ public class KinesisEventPublisher {
 
     ByteBuffer data = ByteBuffer.wrap(finalLine.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
+    // Need to serialize this to an object to get the key.
+    String hashKey;
+
+    Gson gson = new Gson();
+    try {
+      MinimalKey minimal = gson.fromJson(line, MinimalKey.class);
+      if (minimal.kdsHashKey != null) {
+        hashKey = minimal.kdsHashKey;
+        log.debug("Using passed in hash key");
+      } else {
+        hashKey = randomExplicitHashKey();
+        log.debug("Using random hash key");
+      }
+    }
+    catch (JsonSyntaxException e) {
+      hashKey = randomExplicitHashKey();
+      log.debug("Using random hash key");
+    }
+
     //This is a measure of the backpressure in the system, which should be checked before putting more records,
     //to avoid exhausting system resources.
     while (kinesis.getOutstandingRecordsCount() > 1e4) {
@@ -53,7 +74,7 @@ public class KinesisEventPublisher {
       Thread.sleep(500);
     }
 
-    UserRecord userRecord = new UserRecord(stream, " ", randomExplicitHashKey(), data);
+    UserRecord userRecord = new UserRecord(stream, " ", hashKey, data);
     ListenableFuture<UserRecordResult> f = kinesis.addUserRecord(userRecord);
 
     Futures.addCallback(f, new FutureCallback<UserRecordResult>() {

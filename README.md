@@ -13,6 +13,8 @@ building a data ingestion app using Kinesis in a language other than Java.
 - Point the server to your kinesis stream by setting the `AWS_DEFAULT_REGION` and `KINESIS_STREAM` environment variables. Once the server is
 up and running, you can send data to Kinesis by opening a socket connection and sending utf-8 data.
 - Each record you send should be delimited by a new line.
+- If you don't pass in a hash key a random hash key is generated for you.
+  - To pass in a hash key, add the hash key as kdshashkey on the root of your JSON object.
 
 When service starts, it exposes two ports:
 1. Inlet Port: This port is used to receive the message from your app to be sent to kinesis. The server defaults to port `3000` but can be overridden by setting the `PORT` environment variable.
