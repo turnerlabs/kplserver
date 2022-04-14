@@ -25,7 +25,7 @@ public class App {
     ServerSocket errSocket = new ServerSocket(port);
     errSocket.setSoTimeout(100);
 
-    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), getMetricsLevel(), errSocket);
+    KinesisEventPublisher kinesisEventPublisher = new KinesisEventPublisher(stream, getRegion(), getMetricsLevel(), getCrossAccountRole(), errSocket);
 
     // graceful shutdowns
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -88,4 +88,11 @@ public class App {
     return p;
   }
 
+  static String getCrossAccountRole() {
+    String p = System.getenv("CROSS_ACCOUNT_ROLE");
+    if (p == null || p.equals("")) {
+      return "";
+    }
+    return p;
+  }
 }

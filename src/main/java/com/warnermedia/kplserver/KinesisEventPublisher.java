@@ -46,25 +46,31 @@ public class KinesisEventPublisher {
   ServerSocket errSocket;
   Socket errClient;
 
-  public KinesisEventPublisher(String stream, String region, String metricsLevel, ServerSocket errSocket) {
+  public KinesisEventPublisher(String stream, String region, String metricsLevel, String crossAccountRole, ServerSocket errSocket) {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region)
       .setMetricsLevel(metricsLevel)
-      .setCredentialsProvider(loadCredentials(false)));
+      .setCredentialsProvider(loadCredentials(crossAccountRole)));
     this.errSocket = errSocket;
   }
 
-  private static AWSCredentialsProvider loadCredentials(boolean isLocal) {
+  private static AWSCredentialsProvider loadCredentials(String crossAccountRole) {
     final AWSCredentialsProvider credentialsProvider;
-    if (isLocal) {
+
+    Boolean isCrossAccount = false;
+    if (!crossAccountRole.equals("")) {
+      isCrossAccount = true;
+    }
+
+    if (isCrossAccount) {
       AWSSecurityTokenService stsClient = AWSSecurityTokenServiceAsyncClientBuilder.standard()
         .withCredentials(new ProfileCredentialsProvider("nonprodjump"))
         .withRegion("us-east-1")
         .build();
 
       AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest().withDurationSeconds(3600)
-        .withRoleArn("arn:aws:iam::373762790913:role/doppler-video-lcluseast1")
+        .withRoleArn(crossAccountRole)
         .withRoleSessionName("Kinesis_Session");
 
       AssumeRoleResult assumeRoleResult = stsClient.assumeRole(assumeRoleRequest);
