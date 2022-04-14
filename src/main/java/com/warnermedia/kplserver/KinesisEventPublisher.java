@@ -1,10 +1,20 @@
 package com.warnermedia.kplserver;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.kinesis.producer.KinesisProducer;
 import com.amazonaws.services.kinesis.producer.KinesisProducerConfiguration;
 import com.amazonaws.services.kinesis.producer.UserRecord;
 import com.amazonaws.services.kinesis.producer.UserRecordFailedException;
 import com.amazonaws.services.kinesis.producer.UserRecordResult;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsyncClientBuilder;
+import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
+import com.amazonaws.services.securitytoken.model.Credentials;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -40,8 +50,36 @@ public class KinesisEventPublisher {
     this.stream = stream;
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region)
-      .setMetricsLevel(metricsLevel));
+      .setMetricsLevel(metricsLevel)
+      .setCredentialsProvider(loadCredentials(false)));
     this.errSocket = errSocket;
+  }
+
+  private static AWSCredentialsProvider loadCredentials(boolean isLocal) {
+    final AWSCredentialsProvider credentialsProvider;
+    if (isLocal) {
+      AWSSecurityTokenService stsClient = AWSSecurityTokenServiceAsyncClientBuilder.standard()
+        .withCredentials(new ProfileCredentialsProvider("nonprodjump"))
+        .withRegion("us-east-1")
+        .build();
+
+      AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest().withDurationSeconds(3600)
+        .withRoleArn("arn:aws:iam::373762790913:role/doppler-video-lcluseast1")
+        .withRoleSessionName("Kinesis_Session");
+
+      AssumeRoleResult assumeRoleResult = stsClient.assumeRole(assumeRoleRequest);
+      Credentials creds = assumeRoleResult.getCredentials();
+
+      credentialsProvider = new AWSStaticCredentialsProvider(
+        new BasicSessionCredentials(creds.getAccessKeyId(),
+          creds.getSecretAccessKey(),
+          creds.getSessionToken())
+      );
+    } else {
+      credentialsProvider = new DefaultAWSCredentialsProviderChain();
+    }
+
+    return credentialsProvider;
   }
 
   public void runOnce(String line) throws Exception {
