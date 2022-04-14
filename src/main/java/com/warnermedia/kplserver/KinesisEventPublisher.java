@@ -51,11 +51,11 @@ public class KinesisEventPublisher {
     kinesis = new KinesisProducer(new KinesisProducerConfiguration()
       .setRegion(region)
       .setMetricsLevel(metricsLevel)
-      .setCredentialsProvider(loadCredentials(crossAccountRole)));
+      .setCredentialsProvider(loadCredentials(crossAccountRole, region)));
     this.errSocket = errSocket;
   }
 
-  private static AWSCredentialsProvider loadCredentials(String crossAccountRole) {
+  private static AWSCredentialsProvider loadCredentials(String crossAccountRole, String region) {
     final AWSCredentialsProvider credentialsProvider;
 
     Boolean isCrossAccount = false;
@@ -65,8 +65,7 @@ public class KinesisEventPublisher {
 
     if (isCrossAccount) {
       AWSSecurityTokenService stsClient = AWSSecurityTokenServiceAsyncClientBuilder.standard()
-        .withCredentials(new ProfileCredentialsProvider("nonprodjump"))
-        .withRegion("us-east-1")
+        .withRegion(region)
         .build();
 
       AssumeRoleRequest assumeRoleRequest = new AssumeRoleRequest().withDurationSeconds(3600)
